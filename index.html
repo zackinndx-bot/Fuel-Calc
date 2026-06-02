@@ -24,6 +24,7 @@
   .fuel-row { display: flex; align-items: center; gap: 6px; }
   .fuel-row span { color: #94a3b8; font-size: 13px; }
   .fuel-row .unit { color: #64748b; font-size: 12px; }
+  .fuel-row input { min-width: 0; }
   .vehicle-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .vbtn { padding: 8px 14px; border-radius: 10px; border: 2px solid #334155; background: transparent; color: #94a3b8; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
   .vbtn.active-petrol { border-color: #38bdf8; background: rgba(56,189,248,0.15); color: #38bdf8; }
@@ -33,11 +34,15 @@
   .add-form, .edit-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
   .edit-label { font-size: 13px; color: #64748b; }
   .km-unit { font-size: 12px; color: #64748b; }
-  input[type=number], input[type=text], select {
+  input[type=text], select {
     background: #0f172a; border: 1px solid #334155; border-radius: 8px;
     padding: 7px 10px; color: #f1f5f9; font-size: 13px; outline: none;
   }
-  .fuel-row input { min-width: 0; }
+  input.text-input {
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    padding: 7px 10px; color: #f1f5f9; font-size: 13px; outline: none;
+  }
+  select { cursor: pointer; }
   .save-btn { padding: 7px 14px; border-radius: 8px; border: none; background: #0ea5e9; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
   .del-btn { padding: 6px 10px; border-radius: 8px; border: none; background: #ef4444; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
   .trip-card { border-radius: 16px; padding: 20px; margin-bottom: 16px; }
@@ -52,9 +57,10 @@
   .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .slider-row .slabel { font-size: 14px; color: #cbd5e1; }
   .slider-row .sinput-wrap { display: flex; align-items: center; gap: 6px; }
-  .slider-row .sinput-wrap input { width: 80px; font-weight: 700; font-size: 15px; text-align: right; }
   .slider-row .sinput-wrap .unit { font-size: 13px; color: #64748b; }
-  input[type=range] { width: 100%; cursor: pointer; height: 6px; border-radius: 3px; border: none; background: #334155; }
+  input[type=range] { width: 100%; cursor: pointer; height: 6px; border-radius: 3px; border: none; background: #334155; -webkit-appearance: none; appearance: none; touch-action: pan-y; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #38bdf8; cursor: pointer; }
+  input[type=range].diesel-range::-webkit-slider-thumb { background: #f59e0b; }
   .slider-limits { display: flex; justify-content: space-between; margin-top: 2px; }
   .slider-limits span { font-size: 11px; color: #475569; }
   .results { border-radius: 16px; padding: 20px; margin-bottom: 16px; }
@@ -92,7 +98,7 @@
         <div class="fuel-label">⚡ Petrol</div>
         <div class="fuel-row">
           <span>R</span>
-          <input type="number" id="petrol-price" step="0.01" min="0" value="21.50" style="flex:1;font-weight:700;color:#38bdf8;font-size:16px;" oninput="render()" />
+          <input class="text-input" type="text" inputmode="decimal" id="petrol-price" value="21.50" style="flex:1;font-weight:700;color:#38bdf8;font-size:16px;" />
           <span class="unit">/L</span>
         </div>
       </div>
@@ -100,7 +106,7 @@
         <div class="fuel-label">🔶 Diesel</div>
         <div class="fuel-row">
           <span>R</span>
-          <input type="number" id="diesel-price" step="0.01" min="0" value="19.80" style="flex:1;font-weight:700;color:#f59e0b;font-size:16px;" oninput="render()" />
+          <input class="text-input" type="text" inputmode="decimal" id="diesel-price" value="19.80" style="flex:1;font-weight:700;color:#f59e0b;font-size:16px;" />
           <span class="unit">/L</span>
         </div>
       </div>
@@ -114,8 +120,8 @@
     <button class="add-btn" onclick="toggleAddForm()">+ Add</button>
     <div id="add-form-container">
       <div class="add-form">
-        <input type="text" id="new-name" placeholder="Vehicle name" style="flex:1;min-width:100px;" />
-        <input type="number" id="new-consumption" placeholder="km/L" step="0.1" style="width:80px;" />
+        <input class="text-input" type="text" id="new-name" placeholder="Vehicle name" style="flex:1;min-width:100px;" />
+        <input class="text-input" type="text" inputmode="decimal" id="new-consumption" placeholder="km/L" style="width:80px;" />
         <select id="new-fueltype">
           <option value="petrol">Petrol</option>
           <option value="diesel">Diesel</option>
@@ -143,16 +149,23 @@ let vehicles = [
 ];
 let selectedId = 1;
 
+// Track raw text input values so decimal points aren't lost mid-typing
+let distRaw = {};
+let daysRaw = {};
+
 function sel() { return vehicles.find(v => v.id === selectedId); }
+
 function fuelPrice(type) {
-  return parseFloat(document.getElementById(type + '-price')?.value) || 0;
+  const el = document.getElementById(type + '-price');
+  return parseFloat(el?.value) || 0;
 }
 function typeColor(t) { return t === 'diesel' ? '#f59e0b' : '#38bdf8'; }
 function fmt(n) { return 'R ' + n.toFixed(2); }
 
 function updateVehicle(id, field, value) {
   vehicles = vehicles.map(v => v.id === id ? { ...v, [field]: value } : v);
-  render();
+  renderResults();
+  renderBreakdown();
 }
 
 function selectVehicle(id) { selectedId = id; render(); }
@@ -183,15 +196,20 @@ function removeVehicle(id) {
   render();
 }
 
+// Attach stable (non-re-rendered) listeners once for fuel price inputs
+function attachFuelListeners() {
+  ['petrol', 'diesel'].forEach(type => {
+    const el = document.getElementById(type + '-price');
+    if (el && !el._bound) {
+      el.addEventListener('input', () => { renderResults(); renderBreakdown(); });
+      el._bound = true;
+    }
+  });
+}
+
 function render() {
   const v = sel();
   if (!v) return;
-  const fp = fuelPrice(v.fuelType);
-  const litresPerTrip = v.consumption > 0 ? v.distance / v.consumption : 0;
-  const costPerTrip = litresPerTrip * fp;
-  const totalLitres = litresPerTrip * v.days;
-  const totalCost = costPerTrip * v.days;
-  const costPerKm = v.consumption > 0 ? fp / v.consumption : 0;
   const color = typeColor(v.fuelType);
 
   // Vehicle buttons
@@ -200,20 +218,42 @@ function render() {
     return `<button class="vbtn ${activeClass}" onclick="selectVehicle(${veh.id})">${veh.name}<span class="vtype">${veh.fuelType}</span></button>`;
   }).join('');
 
-  // Edit row
+  // Edit row — use stable IDs so inputs aren't destroyed on each keystroke
   document.getElementById('edit-row').innerHTML = `
     <span class="edit-label">Edit:</span>
-    <input type="text" value="${v.name}" style="flex:1;min-width:100px;" oninput="updateVehicle(${v.id},'name',this.value)" />
-    <input type="number" value="${v.consumption}" step="0.1" style="width:70px;" oninput="updateVehicle(${v.id},'consumption',parseFloat(this.value)||0)" />
+    <input class="text-input" type="text" id="edit-name" value="${v.name}" style="flex:1;min-width:100px;" />
+    <input class="text-input" type="text" inputmode="decimal" id="edit-consumption" value="${v.consumption}" style="width:70px;" />
     <span class="km-unit">km/L</span>
-    <select onchange="updateVehicle(${v.id},'fuelType',this.value)">
+    <select id="edit-fueltype">
       <option value="petrol" ${v.fuelType==='petrol'?'selected':''}>Petrol</option>
       <option value="diesel" ${v.fuelType==='diesel'?'selected':''}>Diesel</option>
     </select>
     ${vehicles.length > 1 ? `<button class="del-btn" onclick="removeVehicle(${v.id})">🗑</button>` : ''}
   `;
 
+  // Attach edit listeners once per render (stable IDs)
+  document.getElementById('edit-name').addEventListener('input', e => {
+    updateVehicle(selectedId, 'name', e.target.value);
+    // re-render buttons only
+    document.getElementById('vehicle-btns').innerHTML = vehicles.map(veh => {
+      const ac = veh.id === selectedId ? `active-${veh.fuelType}` : '';
+      return `<button class="vbtn ${ac}" onclick="selectVehicle(${veh.id})">${veh.name}<span class="vtype">${veh.fuelType}</span></button>`;
+    }).join('');
+  });
+  document.getElementById('edit-consumption').addEventListener('input', e => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val)) updateVehicle(selectedId, 'consumption', val);
+  });
+  document.getElementById('edit-fueltype').addEventListener('change', e => {
+    updateVehicle(selectedId, 'fuelType', e.target.value);
+    render();
+  });
+
   // Trip card
+  const distVal = distRaw[v.id] !== undefined ? distRaw[v.id] : v.distance;
+  const daysVal = daysRaw[v.id] !== undefined ? daysRaw[v.id] : v.days;
+  const rangeClass = v.fuelType === 'diesel' ? 'diesel-range' : '';
+
   document.getElementById('trip-card').innerHTML = `
     <div class="trip-card ${v.fuelType}">
       <div class="trip-header">
@@ -224,42 +264,91 @@ function render() {
         <div class="slider-row">
           <span class="slabel">Distance</span>
           <div class="sinput-wrap">
-            <input type="number" step="0.1" min="0.1" max="10000" value="${v.distance}"
-              style="color:${color};"
-              oninput="syncDistance(${v.id}, this.value, 'input')" />
+            <input class="text-input" type="text" inputmode="decimal" id="dist-input" value="${distVal}" style="width:80px;font-weight:700;color:${color};font-size:15px;text-align:right;" />
             <span class="unit">km</span>
           </div>
         </div>
-        <input type="range" id="dist-slider-${v.id}" min="0.1" max="1000" step="0.1" value="${v.distance}"
-          style="accent-color:${color};"
-          oninput="syncDistance(${v.id}, this.value, 'slider')" />
+        <input type="range" id="dist-slider" class="${rangeClass}" min="0.1" max="1000" step="0.1" value="${v.distance}" style="accent-color:${color};" />
         <div class="slider-limits"><span>0.1</span><span>1000</span></div>
       </div>
       <div class="slider-block">
         <div class="slider-row">
           <span class="slabel">Number of Trips</span>
           <div class="sinput-wrap">
-            <input type="number" min="1" max="365" value="${v.days}"
-              style="width:70px;color:${color};"
-              oninput="syncDays(${v.id}, this.value, 'input')" />
-            <span class="unit">${v.days === 1 ? 'trip' : 'trips'}</span>
+            <input class="text-input" type="text" inputmode="numeric" id="days-input" value="${daysVal}" style="width:70px;font-weight:700;color:${color};font-size:15px;text-align:right;" />
+            <span class="unit" id="trips-unit">${v.days === 1 ? 'trip' : 'trips'}</span>
           </div>
         </div>
-        <input type="range" id="days-slider-${v.id}" min="1" max="365" step="1" value="${v.days}"
-          style="accent-color:${color};"
-          oninput="syncDays(${v.id}, this.value, 'slider')" />
+        <input type="range" id="days-slider" class="${rangeClass}" min="1" max="365" step="1" value="${v.days}" style="accent-color:${color};" />
         <div class="slider-limits"><span>1</span><span>365</span></div>
       </div>
     </div>
   `;
 
-  // Results
-  const gradients = v.fuelType === 'diesel'
-    ? 'linear-gradient(135deg,#d97706,#b45309)'
-    : 'linear-gradient(135deg,#0ea5e9,#6366f1)';
+  // Distance input — allow free typing, only commit valid numbers
+  document.getElementById('dist-input').addEventListener('input', e => {
+    distRaw[selectedId] = e.target.value;
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val) && val > 0) {
+      vehicles = vehicles.map(v => v.id === selectedId ? { ...v, distance: val } : v);
+      document.getElementById('dist-slider').value = Math.min(val, 1000);
+      renderResults(); renderBreakdown();
+    }
+  });
+
+  // Distance slider — fluid touch
+  const distSlider = document.getElementById('dist-slider');
+  distSlider.addEventListener('input', e => {
+    const val = parseFloat(parseFloat(e.target.value).toFixed(1));
+    distRaw[selectedId] = String(val);
+    vehicles = vehicles.map(v => v.id === selectedId ? { ...v, distance: val } : v);
+    document.getElementById('dist-input').value = val;
+    renderResults(); renderBreakdown();
+  });
+
+  // Days input
+  document.getElementById('days-input').addEventListener('input', e => {
+    daysRaw[selectedId] = e.target.value;
+    const val = parseInt(e.target.value);
+    if (!isNaN(val) && val >= 1) {
+      vehicles = vehicles.map(v => v.id === selectedId ? { ...v, days: val } : v);
+      document.getElementById('days-slider').value = Math.min(val, 365);
+      document.getElementById('trips-unit').textContent = val === 1 ? 'trip' : 'trips';
+      renderResults(); renderBreakdown();
+    }
+  });
+
+  // Days slider — fluid touch
+  const daysSlider = document.getElementById('days-slider');
+  daysSlider.addEventListener('input', e => {
+    const val = parseInt(e.target.value);
+    daysRaw[selectedId] = String(val);
+    vehicles = vehicles.map(v => v.id === selectedId ? { ...v, days: val } : v);
+    document.getElementById('days-input').value = val;
+    document.getElementById('trips-unit').textContent = val === 1 ? 'trip' : 'trips';
+    renderResults(); renderBreakdown();
+  });
+
+  renderResults();
+  renderBreakdown();
+  attachFuelListeners();
+}
+
+function renderResults() {
+  const v = sel();
+  if (!v) return;
+  const fp = fuelPrice(v.fuelType);
+  const litresPerTrip = v.consumption > 0 ? v.distance / v.consumption : 0;
+  const costPerTrip = litresPerTrip * fp;
+  const totalLitres = litresPerTrip * v.days;
+  const totalCost = costPerTrip * v.days;
+  const costPerKm = v.consumption > 0 ? fp / v.consumption : 0;
+  const gradients = v.fuelType === 'diesel' ? 'linear-gradient(135deg,#d97706,#b45309)' : 'linear-gradient(135deg,#0ea5e9,#6366f1)';
+  const fp2 = fuelPrice(v.fuelType);
+
   document.getElementById('results-card').innerHTML = `
     <div class="results ${v.fuelType}" style="background:${gradients};">
-      <div class="results-label">Cost Summary — ${v.fuelType} @ R${fp.toFixed(2)}/L</div>
+      <div class="results-label">Cost Summary — ${v.fuelType} @ R${fp2.toFixed(2)}/L</div>
       <div class="stat-grid">
         <div class="stat-card"><div class="slabel">Per Trip</div><div class="sval">${fmt(costPerTrip)}</div><div class="ssub">${litresPerTrip.toFixed(2)} L</div></div>
         <div class="stat-card"><div class="slabel">Cost / km</div><div class="sval">${fmt(costPerKm)}</div><div class="ssub">per kilometre</div></div>
@@ -271,8 +360,12 @@ function render() {
       </div>
     </div>
   `;
+}
 
-  // Breakdown
+function renderBreakdown() {
+  const v = sel();
+  if (!v) return;
+  const fp = fuelPrice(v.fuelType);
   document.getElementById('breakdown-card').innerHTML = `
     <span class="section-label">Breakdown</span>
     ${[
@@ -289,28 +382,6 @@ function render() {
         <span class="bval">${val}</span>
       </div>`).join('')}
   `;
-}
-
-function syncDistance(id, val, source) {
-  const parsed = parseFloat(parseFloat(val).toFixed(1));
-  if (isNaN(parsed) || parsed <= 0) return;
-  vehicles = vehicles.map(v => v.id === id ? { ...v, distance: parsed } : v);
-  if (source === 'input') {
-    const s = document.getElementById('dist-slider-' + id);
-    if (s) s.value = Math.min(parsed, 1000);
-  }
-  render();
-}
-
-function syncDays(id, val, source) {
-  const parsed = parseInt(val);
-  if (isNaN(parsed) || parsed < 1) return;
-  vehicles = vehicles.map(v => v.id === id ? { ...v, days: parsed } : v);
-  if (source === 'input') {
-    const s = document.getElementById('days-slider-' + id);
-    if (s) s.value = Math.min(parsed, 365);
-  }
-  render();
 }
 
 render();
