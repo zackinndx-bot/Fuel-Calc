@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fuel Cost Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 24px 16px; font-family: 'Inter', sans-serif; color: #f1f5f9; }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 28px; }
+  .header .icon { font-size: 36px; }
+  .header h1 { font-size: 24px; font-weight: 700; margin: 8px 0 4px; color: #f8fafc; }
+  .header p { color: #94a3b8; font-size: 14px; }
+  .card { background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
+  .section-label { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 12px; }
+  .fuel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; overflow: hidden; }
+  .fuel-box { border-radius: 12px; padding: 14px; min-width: 0; }
+  .fuel-box.petrol { background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.2); }
+  .fuel-box.diesel { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.2); }
+  .fuel-box .fuel-label { font-size: 12px; font-weight: 600; text-transform: capitalize; margin-bottom: 8px; }
+  .fuel-box.petrol .fuel-label { color: #38bdf8; }
+  .fuel-box.diesel .fuel-label { color: #f59e0b; }
+  .fuel-row { display: flex; align-items: center; gap: 6px; }
+  .fuel-row span { color: #94a3b8; font-size: 13px; }
+  .fuel-row .unit { color: #64748b; font-size: 12px; }
+  .vehicle-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .vbtn { padding: 8px 14px; border-radius: 10px; border: 2px solid #334155; background: transparent; color: #94a3b8; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .vbtn.active-petrol { border-color: #38bdf8; background: rgba(56,189,248,0.15); color: #38bdf8; }
+  .vbtn.active-diesel { border-color: #f59e0b; background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .vbtn .vtype { margin-left: 6px; font-size: 11px; opacity: 0.7; text-transform: capitalize; }
+  .add-btn { padding: 8px 14px; border-radius: 10px; border: 2px dashed #334155; background: transparent; color: #64748b; font-size: 13px; cursor: pointer; }
+  .add-form, .edit-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  .edit-label { font-size: 13px; color: #64748b; }
+  .km-unit { font-size: 12px; color: #64748b; }
+  input[type=number], input[type=text], select {
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    padding: 7px 10px; color: #f1f5f9; font-size: 13px; outline: none;
+  }
+  .fuel-row input { min-width: 0; }
+  .save-btn { padding: 7px 14px; border-radius: 8px; border: none; background: #0ea5e9; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .del-btn { padding: 6px 10px; border-radius: 8px; border: none; background: #ef4444; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .trip-card { border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .trip-card.petrol { border: 1px solid rgba(56,189,248,0.27); background: #1e293b; }
+  .trip-card.diesel { border: 1px solid rgba(245,158,11,0.27); background: #1e293b; }
+  .trip-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .vehicle-badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .vehicle-badge.petrol { color: #38bdf8; background: rgba(56,189,248,0.15); }
+  .vehicle-badge.diesel { color: #f59e0b; background: rgba(245,158,11,0.15); }
+  .slider-block { margin-bottom: 18px; }
+  .slider-block:last-child { margin-bottom: 0; }
+  .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .slider-row .slabel { font-size: 14px; color: #cbd5e1; }
+  .slider-row .sinput-wrap { display: flex; align-items: center; gap: 6px; }
+  .slider-row .sinput-wrap input { width: 80px; font-weight: 700; font-size: 15px; text-align: right; }
+  .slider-row .sinput-wrap .unit { font-size: 13px; color: #64748b; }
+  input[type=range] { width: 100%; cursor: pointer; height: 6px; border-radius: 3px; border: none; background: #334155; }
+  .slider-limits { display: flex; justify-content: space-between; margin-top: 2px; }
+  .slider-limits span { font-size: 11px; color: #475569; }
+  .results { border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .results.petrol { background: linear-gradient(135deg, #0ea5e9, #6366f1); }
+  .results.diesel { background: linear-gradient(135deg, #d97706, #b45309); }
+  .results-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-card .slabel { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+  .stat-card .sval { font-size: 20px; font-weight: 700; color: #fff; }
+  .stat-card .ssub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .total-box { background: rgba(0,0,0,0.25); border-radius: 12px; padding: 16px; text-align: center; }
+  .total-box .tlabel { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+  .total-box .tval { font-size: 36px; font-weight: 800; color: #fff; }
+  .total-box .tsub { font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .breakdown-row { display: flex; justify-content: space-between; border-bottom: 1px solid #0f172a; padding-bottom: 8px; margin-top: 10px; }
+  .breakdown-row .blabel { color: #64748b; font-size: 14px; }
+  .breakdown-row .bval { color: #f1f5f9; font-weight: 600; font-size: 14px; }
+  #add-form-container { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="icon">⛽</div>
+    <h1>Fuel Cost Calculator</h1>
+    <p>Plan your trip costs in seconds</p>
+  </div>
+
+  <!-- Fuel Prices -->
+  <div class="card">
+    <span class="section-label">Fuel Prices (R/L)</span>
+    <div class="fuel-grid">
+      <div class="fuel-box petrol">
+        <div class="fuel-label">⚡ Petrol</div>
+        <div class="fuel-row">
+          <span>R</span>
+          <input type="number" id="petrol-price" step="0.01" min="0" value="21.50" style="flex:1;font-weight:700;color:#38bdf8;font-size:16px;" oninput="render()" />
+          <span class="unit">/L</span>
+        </div>
+      </div>
+      <div class="fuel-box diesel">
+        <div class="fuel-label">🔶 Diesel</div>
+        <div class="fuel-row">
+          <span>R</span>
+          <input type="number" id="diesel-price" step="0.01" min="0" value="19.80" style="flex:1;font-weight:700;color:#f59e0b;font-size:16px;" oninput="render()" />
+          <span class="unit">/L</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicles -->
+  <div class="card" id="vehicle-card">
+    <span class="section-label">Select Vehicle</span>
+    <div class="vehicle-btns" id="vehicle-btns"></div>
+    <button class="add-btn" onclick="toggleAddForm()">+ Add</button>
+    <div id="add-form-container">
+      <div class="add-form">
+        <input type="text" id="new-name" placeholder="Vehicle name" style="flex:1;min-width:100px;" />
+        <input type="number" id="new-consumption" placeholder="km/L" step="0.1" style="width:80px;" />
+        <select id="new-fueltype">
+          <option value="petrol">Petrol</option>
+          <option value="diesel">Diesel</option>
+        </select>
+        <button class="save-btn" onclick="addVehicle()">Save</button>
+      </div>
+    </div>
+    <div class="edit-row" id="edit-row"></div>
+  </div>
+
+  <!-- Trip Details -->
+  <div id="trip-card"></div>
+
+  <!-- Results -->
+  <div id="results-card"></div>
+
+  <!-- Breakdown -->
+  <div class="card" id="breakdown-card"></div>
+</div>
+
+<script>
+let vehicles = [
+  { id: 1, name: "My Car",  consumption: 12.5, fuelType: "petrol", distance: 20,   days: 1 },
+  { id: 2, name: "Bakkie",  consumption: 8.5,  fuelType: "diesel", distance: 15,   days: 1 },
+];
+let selectedId = 1;
+
+function sel() { return vehicles.find(v => v.id === selectedId); }
+function fuelPrice(type) {
+  return parseFloat(document.getElementById(type + '-price')?.value) || 0;
+}
+function typeColor(t) { return t === 'diesel' ? '#f59e0b' : '#38bdf8'; }
+function fmt(n) { return 'R ' + n.toFixed(2); }
+
+function updateVehicle(id, field, value) {
+  vehicles = vehicles.map(v => v.id === id ? { ...v, [field]: value } : v);
+  render();
+}
+
+function selectVehicle(id) { selectedId = id; render(); }
+
+function toggleAddForm() {
+  const el = document.getElementById('add-form-container');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addVehicle() {
+  const name = document.getElementById('new-name').value.trim();
+  const consumption = parseFloat(document.getElementById('new-consumption').value);
+  const fuelType = document.getElementById('new-fueltype').value;
+  if (!name || isNaN(consumption)) return;
+  const id = Date.now();
+  vehicles.push({ id, name, consumption, fuelType, distance: 20, days: 1 });
+  selectedId = id;
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-consumption').value = '';
+  document.getElementById('add-form-container').style.display = 'none';
+  render();
+}
+
+function removeVehicle(id) {
+  if (vehicles.length === 1) return;
+  vehicles = vehicles.filter(v => v.id !== id);
+  if (selectedId === id) selectedId = vehicles[0].id;
+  render();
+}
+
+function render() {
+  const v = sel();
+  if (!v) return;
+  const fp = fuelPrice(v.fuelType);
+  const litresPerTrip = v.consumption > 0 ? v.distance / v.consumption : 0;
+  const costPerTrip = litresPerTrip * fp;
+  const totalLitres = litresPerTrip * v.days;
+  const totalCost = costPerTrip * v.days;
+  const costPerKm = v.consumption > 0 ? fp / v.consumption : 0;
+  const color = typeColor(v.fuelType);
+
+  // Vehicle buttons
+  document.getElementById('vehicle-btns').innerHTML = vehicles.map(veh => {
+    const activeClass = veh.id === selectedId ? `active-${veh.fuelType}` : '';
+    return `<button class="vbtn ${activeClass}" onclick="selectVehicle(${veh.id})">${veh.name}<span class="vtype">${veh.fuelType}</span></button>`;
+  }).join('');
+
+  // Edit row
+  document.getElementById('edit-row').innerHTML = `
+    <span class="edit-label">Edit:</span>
+    <input type="text" value="${v.name}" style="flex:1;min-width:100px;" oninput="updateVehicle(${v.id},'name',this.value)" />
+    <input type="number" value="${v.consumption}" step="0.1" style="width:70px;" oninput="updateVehicle(${v.id},'consumption',parseFloat(this.value)||0)" />
+    <span class="km-unit">km/L</span>
+    <select onchange="updateVehicle(${v.id},'fuelType',this.value)">
+      <option value="petrol" ${v.fuelType==='petrol'?'selected':''}>Petrol</option>
+      <option value="diesel" ${v.fuelType==='diesel'?'selected':''}>Diesel</option>
+    </select>
+    ${vehicles.length > 1 ? `<button class="del-btn" onclick="removeVehicle(${v.id})">🗑</button>` : ''}
+  `;
+
+  // Trip card
+  document.getElementById('trip-card').innerHTML = `
+    <div class="trip-card ${v.fuelType}">
+      <div class="trip-header">
+        <span class="section-label" style="margin-bottom:0;">Trip Details</span>
+        <span class="vehicle-badge ${v.fuelType}">${v.name}</span>
+      </div>
+      <div class="slider-block">
+        <div class="slider-row">
+          <span class="slabel">Distance</span>
+          <div class="sinput-wrap">
+            <input type="number" step="0.1" min="0.1" max="10000" value="${v.distance}"
+              style="color:${color};"
+              oninput="syncDistance(${v.id}, this.value, 'input')" />
+            <span class="unit">km</span>
+          </div>
+        </div>
+        <input type="range" id="dist-slider-${v.id}" min="0.1" max="1000" step="0.1" value="${v.distance}"
+          style="accent-color:${color};"
+          oninput="syncDistance(${v.id}, this.value, 'slider')" />
+        <div class="slider-limits"><span>0.1</span><span>1000</span></div>
+      </div>
+      <div class="slider-block">
+        <div class="slider-row">
+          <span class="slabel">Number of Trips</span>
+          <div class="sinput-wrap">
+            <input type="number" min="1" max="365" value="${v.days}"
+              style="width:70px;color:${color};"
+              oninput="syncDays(${v.id}, this.value, 'input')" />
+            <span class="unit">${v.days === 1 ? 'trip' : 'trips'}</span>
+          </div>
+        </div>
+        <input type="range" id="days-slider-${v.id}" min="1" max="365" step="1" value="${v.days}"
+          style="accent-color:${color};"
+          oninput="syncDays(${v.id}, this.value, 'slider')" />
+        <div class="slider-limits"><span>1</span><span>365</span></div>
+      </div>
+    </div>
+  `;
+
+  // Results
+  const gradients = v.fuelType === 'diesel'
+    ? 'linear-gradient(135deg,#d97706,#b45309)'
+    : 'linear-gradient(135deg,#0ea5e9,#6366f1)';
+  document.getElementById('results-card').innerHTML = `
+    <div class="results ${v.fuelType}" style="background:${gradients};">
+      <div class="results-label">Cost Summary — ${v.fuelType} @ R${fp.toFixed(2)}/L</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="slabel">Per Trip</div><div class="sval">${fmt(costPerTrip)}</div><div class="ssub">${litresPerTrip.toFixed(2)} L</div></div>
+        <div class="stat-card"><div class="slabel">Cost / km</div><div class="sval">${fmt(costPerKm)}</div><div class="ssub">per kilometre</div></div>
+      </div>
+      <div class="total-box">
+        <div class="tlabel">Total for ${v.days} ${v.days===1?'trip':'trips'} × ${v.distance} km</div>
+        <div class="tval">${fmt(totalCost)}</div>
+        <div class="tsub">${totalLitres.toFixed(1)} litres total</div>
+      </div>
+    </div>
+  `;
+
+  // Breakdown
+  document.getElementById('breakdown-card').innerHTML = `
+    <span class="section-label">Breakdown</span>
+    ${[
+      ['Vehicle', v.name],
+      ['Fuel Type', v.fuelType.charAt(0).toUpperCase() + v.fuelType.slice(1)],
+      ['Fuel Price', `R ${fp.toFixed(2)}/L`],
+      ['Consumption', `${v.consumption} km/L`],
+      ['Distance per trip', `${v.distance} km`],
+      ['Trips', v.days],
+      ['Total distance', `${(v.distance * v.days).toLocaleString()} km`],
+    ].map(([l, val]) => `
+      <div class="breakdown-row">
+        <span class="blabel">${l}</span>
+        <span class="bval">${val}</span>
+      </div>`).join('')}
+  `;
+}
+
+function syncDistance(id, val, source) {
+  const parsed = parseFloat(parseFloat(val).toFixed(1));
+  if (isNaN(parsed) || parsed <= 0) return;
+  vehicles = vehicles.map(v => v.id === id ? { ...v, distance: parsed } : v);
+  if (source === 'input') {
+    const s = document.getElementById('dist-slider-' + id);
+    if (s) s.value = Math.min(parsed, 1000);
+  }
+  render();
+}
+
+function syncDays(id, val, source) {
+  const parsed = parseInt(val);
+  if (isNaN(parsed) || parsed < 1) return;
+  vehicles = vehicles.map(v => v.id === id ? { ...v, days: parsed } : v);
+  if (source === 'input') {
+    const s = document.getElementById('days-slider-' + id);
+    if (s) s.value = Math.min(parsed, 365);
+  }
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
